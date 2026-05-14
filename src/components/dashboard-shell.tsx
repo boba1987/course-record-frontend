@@ -1,7 +1,8 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -20,7 +21,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { clearAuthToken } from "@/lib/auth-cookie";
-import { useRouter } from "next/navigation";
 import {
   BookOpen,
   GraduationCap,
@@ -34,16 +34,38 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-const nav = [
-  { href: "/professors", label: "Professors", icon: GraduationCap },
-  { href: "/students", label: "Students", icon: Users },
-  { href: "/courses", label: "Courses", icon: School },
-  { href: "/course-semesters", label: "Course semesters", icon: Layers },
-  { href: "/enrollments", label: "Enrollments", icon: ClipboardList },
-  { href: "/exams", label: "Exams", icon: ScrollText },
-  { href: "/authors", label: "Authors", icon: User },
-  { href: "/books", label: "Books", icon: BookOpen },
-  { href: "/course-books", label: "Course books", icon: Library },
+type NavItem = { href: string; label: string; icon: LucideIcon };
+
+const navGroups: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Courses",
+    items: [
+      { href: "/courses", label: "Courses", icon: School },
+      { href: "/course-semesters", label: "Course semesters", icon: Layers },
+      { href: "/course-books", label: "Course books", icon: Library },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { href: "/professors", label: "Professors", icon: GraduationCap },
+      { href: "/students", label: "Students", icon: Users },
+    ],
+  },
+  {
+    label: "Enrollment & exams",
+    items: [
+      { href: "/enrollments", label: "Enrollments", icon: ClipboardList },
+      { href: "/exams", label: "Exams", icon: ScrollText },
+    ],
+  },
+  {
+    label: "Library",
+    items: [
+      { href: "/authors", label: "Authors", icon: User },
+      { href: "/books", label: "Books", icon: BookOpen },
+    ],
+  },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -67,25 +89,27 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </span>
           </div>
         </SidebarHeader>
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {nav.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      render={<Link href={item.href} />}
-                      isActive={pathname === item.href}
-                    >
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+        <SidebarContent className="gap-0">
+          {navGroups.map((group) => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        render={<Link href={item.href} />}
+                        isActive={pathname === item.href}
+                      >
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
         </SidebarContent>
         <SidebarFooter className="border-t border-sidebar-border p-2">
           <Button variant="ghost" className="w-full justify-start gap-2" onClick={logout}>
