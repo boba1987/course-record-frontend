@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -36,7 +36,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { apiFetch } from "@/lib/api";
 import type { StudentDto, StudentPayload } from "@/types/api";
-import { PaginationFooter, usePagedModel } from "@/components/admin/pagination";
+import { ListFiltersToolbar } from "@/components/admin/list-filters-toolbar";
+import { EMPTY_LIST_FILTERS, PaginationFooter, usePagedModel } from "@/components/admin/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const schema = z.object({
@@ -52,8 +53,20 @@ const API = "/api/students";
 export default function StudentsPage() {
   const [page, setPage] = useState(0);
   const size = 20;
+  const [draftFirstName, setDraftFirstName] = useState("");
+  const [draftLastName, setDraftLastName] = useState("");
+  const [appliedFirstName, setAppliedFirstName] = useState("");
+  const [appliedLastName, setAppliedLastName] = useState("");
   const qc = useQueryClient();
-  const list = usePagedModel<StudentDto>(API, page, size);
+  const listFilters = useMemo(() => {
+    const o: Record<string, string> = {};
+    const f = appliedFirstName.trim();
+    const l = appliedLastName.trim();
+    if (f) o.firstName = f;
+    if (l) o.lastName = l;
+    return Object.keys(o).length ? o : EMPTY_LIST_FILTERS;
+  }, [appliedFirstName, appliedLastName]);
+  const list = usePagedModel<StudentDto>(API, page, size, "id,asc", listFilters);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<StudentDto | null>(null);
   const [deleting, setDeleting] = useState<StudentDto | null>(null);
@@ -119,6 +132,44 @@ export default function StudentsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Students</h1>
         <Button onClick={openCreate}>Add student</Button>
       </div>
+
+      <ListFiltersToolbar
+        onApply={() => {
+          setAppliedFirstName(draftFirstName);
+          setAppliedLastName(draftLastName);
+          setPage(0);
+        }}
+        onClear={() => {
+          setDraftFirstName("");
+          setDraftLastName("");
+          setAppliedFirstName("");
+          setAppliedLastName("");
+          setPage(0);
+        }}
+      >
+        <div className="grid w-full gap-3 sm:max-w-xl sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-stu-fn">First name contains</Label>
+            <Input
+              id="filter-stu-fn"
+              value={draftFirstName}
+              onChange={(e) => setDraftFirstName(e.target.value)}
+              placeholder="Filter…"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-stu-ln">Last name contains</Label>
+            <Input
+              id="filter-stu-ln"
+              value={draftLastName}
+              onChange={(e) => setDraftLastName(e.target.value)}
+              placeholder="Filter…"
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      </ListFiltersToolbar>
 
       <div className="rounded-md border">
         <Table>

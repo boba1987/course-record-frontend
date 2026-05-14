@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +43,8 @@ import type {
   CourseDto,
   PagedModel,
 } from "@/types/api";
-import { PaginationFooter, usePagedModel } from "@/components/admin/pagination";
+import { PaginationFooter, usePagedModel, EMPTY_LIST_FILTERS } from "@/components/admin/pagination";
+import { ListFiltersToolbar } from "@/components/admin/list-filters-toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const schema = z.object({
@@ -58,8 +60,20 @@ const BOOKS = "/api/books";
 
 export default function CourseBooksPage() {
   const [page, setPage] = useState(0);
+  const [draftCourseName, setDraftCourseName] = useState("");
+  const [draftBookName, setDraftBookName] = useState("");
+  const [appliedCourseName, setAppliedCourseName] = useState("");
+  const [appliedBookName, setAppliedBookName] = useState("");
   const qc = useQueryClient();
-  const list = usePagedModel<CourseBookDto>(API, page, 20);
+  const listFilters = useMemo(() => {
+    const o: Record<string, string> = {};
+    const c = appliedCourseName.trim();
+    const b = appliedBookName.trim();
+    if (c) o.courseName = c;
+    if (b) o.bookName = b;
+    return Object.keys(o).length ? o : EMPTY_LIST_FILTERS;
+  }, [appliedCourseName, appliedBookName]);
+  const list = usePagedModel<CourseBookDto>(API, page, 20, "id,asc", listFilters);
   const courses = useQuery({
     queryKey: [COURSES, "opts"],
     queryFn: () =>
@@ -135,6 +149,44 @@ export default function CourseBooksPage() {
           Add course book
         </Button>
       </div>
+
+      <ListFiltersToolbar
+        onApply={() => {
+          setAppliedCourseName(draftCourseName);
+          setAppliedBookName(draftBookName);
+          setPage(0);
+        }}
+        onClear={() => {
+          setDraftCourseName("");
+          setDraftBookName("");
+          setAppliedCourseName("");
+          setAppliedBookName("");
+          setPage(0);
+        }}
+      >
+        <div className="grid w-full gap-3 sm:max-w-2xl sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-cb-course">Course title or code</Label>
+            <Input
+              id="filter-cb-course"
+              value={draftCourseName}
+              onChange={(e) => setDraftCourseName(e.target.value)}
+              placeholder="Course…"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-cb-book">Book title</Label>
+            <Input
+              id="filter-cb-book"
+              value={draftBookName}
+              onChange={(e) => setDraftBookName(e.target.value)}
+              placeholder="Book…"
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      </ListFiltersToolbar>
 
       <div className="rounded-md border">
         <Table>

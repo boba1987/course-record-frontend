@@ -37,7 +37,8 @@ import {
 import { apiFetch, buildListQuery } from "@/lib/api";
 import { authorLabel, entityById } from "@/lib/entity-labels";
 import type { AuthorDto, BookDto, BookPayload, PagedModel } from "@/types/api";
-import { PaginationFooter, usePagedModel } from "@/components/admin/pagination";
+import { PaginationFooter, usePagedModel, EMPTY_LIST_FILTERS } from "@/components/admin/pagination";
+import { ListFiltersToolbar } from "@/components/admin/list-filters-toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const schema = z.object({
@@ -53,8 +54,24 @@ const AUTHORS = "/api/authors";
 
 export default function BooksPage() {
   const [page, setPage] = useState(0);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftAuthorFirst, setDraftAuthorFirst] = useState("");
+  const [draftAuthorLast, setDraftAuthorLast] = useState("");
+  const [appliedTitle, setAppliedTitle] = useState("");
+  const [appliedAuthorFirst, setAppliedAuthorFirst] = useState("");
+  const [appliedAuthorLast, setAppliedAuthorLast] = useState("");
   const qc = useQueryClient();
-  const list = usePagedModel<BookDto>(API, page, 20);
+  const listFilters = useMemo(() => {
+    const o: Record<string, string> = {};
+    const t = appliedTitle.trim();
+    const af = appliedAuthorFirst.trim();
+    const al = appliedAuthorLast.trim();
+    if (t) o.title = t;
+    if (af) o.authorFirstName = af;
+    if (al) o.authorLastName = al;
+    return Object.keys(o).length ? o : EMPTY_LIST_FILTERS;
+  }, [appliedTitle, appliedAuthorFirst, appliedAuthorLast]);
+  const list = usePagedModel<BookDto>(API, page, 20, "id,asc", listFilters);
   const authors = useQuery({
     queryKey: [AUTHORS, "all-options"],
     queryFn: () =>
@@ -131,6 +148,57 @@ export default function BooksPage() {
           Add book
         </Button>
       </div>
+
+      <ListFiltersToolbar
+        onApply={() => {
+          setAppliedTitle(draftTitle);
+          setAppliedAuthorFirst(draftAuthorFirst);
+          setAppliedAuthorLast(draftAuthorLast);
+          setPage(0);
+        }}
+        onClear={() => {
+          setDraftTitle("");
+          setDraftAuthorFirst("");
+          setDraftAuthorLast("");
+          setAppliedTitle("");
+          setAppliedAuthorFirst("");
+          setAppliedAuthorLast("");
+          setPage(0);
+        }}
+      >
+        <div className="grid w-full gap-3 sm:max-w-3xl sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-book-title">Book title contains</Label>
+            <Input
+              id="filter-book-title"
+              value={draftTitle}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              placeholder="Title…"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-book-afn">Author first name</Label>
+            <Input
+              id="filter-book-afn"
+              value={draftAuthorFirst}
+              onChange={(e) => setDraftAuthorFirst(e.target.value)}
+              placeholder="First name…"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-book-aln">Author last name</Label>
+            <Input
+              id="filter-book-aln"
+              value={draftAuthorLast}
+              onChange={(e) => setDraftAuthorLast(e.target.value)}
+              placeholder="Last name…"
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      </ListFiltersToolbar>
 
       <div className="rounded-md border">
         <Table>

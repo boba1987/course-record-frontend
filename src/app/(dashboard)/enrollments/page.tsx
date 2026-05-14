@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +43,8 @@ import type {
   PagedModel,
   StudentDto,
 } from "@/types/api";
-import { PaginationFooter, usePagedModel } from "@/components/admin/pagination";
+import { PaginationFooter, usePagedModel, EMPTY_LIST_FILTERS } from "@/components/admin/pagination";
+import { ListFiltersToolbar } from "@/components/admin/list-filters-toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const schema = z.object({
@@ -58,8 +60,20 @@ const COURSES = "/api/courses";
 
 export default function EnrollmentsPage() {
   const [page, setPage] = useState(0);
+  const [draftStudent, setDraftStudent] = useState("");
+  const [draftCourse, setDraftCourse] = useState("");
+  const [appliedStudent, setAppliedStudent] = useState("");
+  const [appliedCourse, setAppliedCourse] = useState("");
   const qc = useQueryClient();
-  const list = usePagedModel<EnrollmentDto>(API, page, 20);
+  const listFilters = useMemo(() => {
+    const o: Record<string, string> = {};
+    const s = appliedStudent.trim();
+    const c = appliedCourse.trim();
+    if (s) o.student = s;
+    if (c) o.course = c;
+    return Object.keys(o).length ? o : EMPTY_LIST_FILTERS;
+  }, [appliedStudent, appliedCourse]);
+  const list = usePagedModel<EnrollmentDto>(API, page, 20, "id,asc", listFilters);
   const students = useQuery({
     queryKey: [STUDENTS, "opts"],
     queryFn: () =>
@@ -138,6 +152,44 @@ export default function EnrollmentsPage() {
           Add enrollment
         </Button>
       </div>
+
+      <ListFiltersToolbar
+        onApply={() => {
+          setAppliedStudent(draftStudent);
+          setAppliedCourse(draftCourse);
+          setPage(0);
+        }}
+        onClear={() => {
+          setDraftStudent("");
+          setDraftCourse("");
+          setAppliedStudent("");
+          setAppliedCourse("");
+          setPage(0);
+        }}
+      >
+        <div className="grid w-full gap-3 sm:max-w-2xl sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-enr-stu">Student (name or index)</Label>
+            <Input
+              id="filter-enr-stu"
+              value={draftStudent}
+              onChange={(e) => setDraftStudent(e.target.value)}
+              placeholder="Student…"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-enr-course">Course title or code</Label>
+            <Input
+              id="filter-enr-course"
+              value={draftCourse}
+              onChange={(e) => setDraftCourse(e.target.value)}
+              placeholder="Course…"
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      </ListFiltersToolbar>
 
       <div className="rounded-md border">
         <Table>

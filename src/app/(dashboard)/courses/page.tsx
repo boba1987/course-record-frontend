@@ -39,7 +39,8 @@ import { apiFetch, buildListQuery } from "@/lib/api";
 import { entityById, professorLabel } from "@/lib/entity-labels";
 import { cn } from "@/lib/utils";
 import type { CourseDto, CoursePayload, PagedModel, ProfessorDto } from "@/types/api";
-import { PaginationFooter, usePagedModel } from "@/components/admin/pagination";
+import { PaginationFooter, usePagedModel, EMPTY_LIST_FILTERS } from "@/components/admin/pagination";
+import { ListFiltersToolbar } from "@/components/admin/list-filters-toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const semesterRowSchema = z.object({
@@ -71,8 +72,15 @@ function defaultSemesters(): Form["semesters"] {
 
 export default function CoursesPage() {
   const [page, setPage] = useState(0);
+  const [draftName, setDraftName] = useState("");
+  const [appliedName, setAppliedName] = useState("");
   const qc = useQueryClient();
-  const list = usePagedModel<CourseDto>(API, page, 20);
+  const listFilters = useMemo(() => {
+    const n = appliedName.trim();
+    if (!n) return EMPTY_LIST_FILTERS;
+    return { name: n };
+  }, [appliedName]);
+  const list = usePagedModel<CourseDto>(API, page, 20, "id,asc", listFilters);
   const professors = useQuery({
     queryKey: [PROFESSORS, "opts"],
     queryFn: () =>
@@ -201,6 +209,29 @@ export default function CoursesPage() {
           Add course
         </Button>
       </div>
+
+      <ListFiltersToolbar
+        onApply={() => {
+          setAppliedName(draftName);
+          setPage(0);
+        }}
+        onClear={() => {
+          setDraftName("");
+          setAppliedName("");
+          setPage(0);
+        }}
+      >
+        <div className="w-full max-w-md space-y-1.5">
+          <Label htmlFor="filter-course-name">Title or code contains</Label>
+          <Input
+            id="filter-course-name"
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            placeholder="Search courses…"
+            autoComplete="off"
+          />
+        </div>
+      </ListFiltersToolbar>
 
       <div className="rounded-md border">
         <Table>

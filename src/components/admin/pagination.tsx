@@ -2,6 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, buildListQuery } from "@/lib/api";
+
+/** Stable empty filters for `usePagedModel` / `useMemo` fallbacks */
+export const EMPTY_LIST_FILTERS: Record<string, string> = Object.freeze({});
 import type { PagedModel } from "@/types/api";
 import { Button } from "@/components/ui/button";
 
@@ -48,12 +51,13 @@ export function usePagedModel<T>(
   page: number,
   size: number,
   sort = "id,asc",
+  filters: Record<string, string> = EMPTY_LIST_FILTERS,
 ) {
   return useQuery({
-    queryKey: [path, page, size, sort],
+    queryKey: [path, page, size, sort, filters],
     queryFn: () =>
       apiFetch<PagedModel<T>>(
-        `${path}${buildListQuery({ page, size, sort })}`,
+        `${path}${buildListQuery({ page, size, sort, filters })}`,
       ),
   });
 }

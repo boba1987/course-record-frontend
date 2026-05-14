@@ -61,15 +61,25 @@ export async function apiFetch<T = unknown>(
   return json as T;
 }
 
-export function buildListQuery(params: {
+export type ListQueryParams = {
   page?: number;
   size?: number;
   sort?: string;
-}): string {
+  /** Server-side list filters; empty strings are omitted */
+  filters?: Record<string, string>;
+};
+
+export function buildListQuery(params: ListQueryParams): string {
   const sp = new URLSearchParams();
   if (params.page !== undefined) sp.set("page", String(params.page));
   if (params.size !== undefined) sp.set("size", String(params.size));
   if (params.sort) sp.set("sort", params.sort);
+  if (params.filters) {
+    for (const [key, raw] of Object.entries(params.filters)) {
+      const v = raw.trim();
+      if (v) sp.set(key, v);
+    }
+  }
   const q = sp.toString();
   return q ? `?${q}` : "";
 }
