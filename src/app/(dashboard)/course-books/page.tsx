@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { apiFetch, buildListQuery } from "@/lib/api";
+import { bookTitleLabel, courseLabel, entityById } from "@/lib/entity-labels";
 import type {
   BookDto,
   CourseBookDto,
@@ -114,6 +115,9 @@ export default function CourseBooksPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const courseById = useMemo(() => entityById(courses.data?.content), [courses.data?.content]);
+  const bookById = useMemo(() => entityById(books.data?.content), [books.data?.content]);
+
   const rows = list.data?.content ?? [];
   const meta = list.data?.page;
 
@@ -155,8 +159,8 @@ export default function CourseBooksPage() {
               rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>{row.id}</TableCell>
-                  <TableCell>{row.courseId}</TableCell>
-                  <TableCell>{row.bookId}</TableCell>
+                  <TableCell>{courseLabel(courseById, row.courseId)}</TableCell>
+                  <TableCell>{bookTitleLabel(bookById, row.bookId)}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
                       size="sm"

@@ -48,7 +48,7 @@ export default function LoginPage() {
       });
       setAuthToken(res.accessToken);
       toast.success("Signed in");
-      router.push("/");
+      router.push("/courses");
       router.refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Login failed");

@@ -1,8 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { apiFetch, buildListQuery } from "@/lib/api";
+import { authorLabel, entityById } from "@/lib/entity-labels";
 import type { AuthorDto, BookDto, BookPayload, PagedModel } from "@/types/api";
 import { PaginationFooter, usePagedModel } from "@/components/admin/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -111,6 +111,8 @@ export default function BooksPage() {
     };
   }
 
+  const authorById = useMemo(() => entityById(authors.data?.content), [authors.data?.content]);
+
   const authorOptions = authors.data?.content ?? [];
   const rows = list.data?.content ?? [];
   const meta = list.data?.page;
@@ -137,7 +139,7 @@ export default function BooksPage() {
               <TableHead className="w-20">ID</TableHead>
               <TableHead>Title</TableHead>
               <TableHead>Published</TableHead>
-              <TableHead className="w-28">Author ID</TableHead>
+              <TableHead>Author</TableHead>
               <TableHead className="w-40 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -156,7 +158,7 @@ export default function BooksPage() {
                   <TableCell>{row.id}</TableCell>
                   <TableCell>{row.title}</TableCell>
                   <TableCell>{row.publicationDate}</TableCell>
-                  <TableCell>{row.authorId ?? "—"}</TableCell>
+                  <TableCell>{authorLabel(authorById, row.authorId)}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
                       size="sm"

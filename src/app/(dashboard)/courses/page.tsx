@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { apiFetch, buildListQuery } from "@/lib/api";
+import { entityById, professorLabel } from "@/lib/entity-labels";
 import { cn } from "@/lib/utils";
 import type { CourseDto, CoursePayload, PagedModel, ProfessorDto } from "@/types/api";
 import { PaginationFooter, usePagedModel } from "@/components/admin/pagination";
@@ -170,6 +171,11 @@ export default function CoursesPage() {
     }
   }
 
+  const professorById = useMemo(
+    () => entityById(professors.data?.content),
+    [professors.data?.content],
+  );
+
   const rows = list.data?.content ?? [];
   const meta = list.data?.page;
   const semErr = form.formState.errors.semesters;
@@ -229,7 +235,7 @@ export default function CoursesPage() {
                     {row.description ?? "—"}
                   </TableCell>
                   <TableCell>{row.espb}</TableCell>
-                  <TableCell>{row.professorId ?? "—"}</TableCell>
+                  <TableCell>{professorLabel(professorById, row.professorId)}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {row.semesters.length === 0
                       ? "—"

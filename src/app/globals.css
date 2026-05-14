@@ -122,7 +122,10 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans font-normal;
+    font-feature-settings:
+      "kern" 1,
+      "liga" 1;
   }
   html {
     @apply font-sans;

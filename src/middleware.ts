@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
   }
   if (token && isLogin) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/courses";
     return NextResponse.redirect(url);
   }
   return NextResponse.next();
