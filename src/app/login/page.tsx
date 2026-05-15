@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/components/admin/pending-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -89,9 +89,9 @@ export default function LoginPage() {
                 </p>
               )}
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Signing in…" : "Sign in"}
-            </Button>
+            <PendingButton type="submit" className="w-full" pending={submitting}>
+              {submitting ? "Signing in" : "Sign in"}
+            </PendingButton>
           </form>
         </CardContent>
       </Card>

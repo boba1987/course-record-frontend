@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PendingButton } from "@/components/admin/pending-button";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -286,12 +286,17 @@ export default function BooksPage() {
               </select>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={save.isPending}
+                onClick={() => setOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={save.isPending}>
+              <PendingButton type="submit" pending={save.isPending}>
                 Save
-              </Button>
+              </PendingButton>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -304,13 +309,14 @@ export default function BooksPage() {
             <AlertDialogDescription>ID {deleting?.id}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogCancel disabled={del.isPending}>Cancel</AlertDialogCancel>
+            <PendingButton
+              pending={del.isPending}
               onClick={() => deleting && del.mutate(deleting.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
-            </AlertDialogAction>
+            </PendingButton>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
