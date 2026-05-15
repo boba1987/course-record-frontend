@@ -206,7 +206,7 @@ export default function BooksPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-20">ID</TableHead>
-              <TableHead>Title</TableHead>
+              <TableHead className="max-w-md whitespace-normal">Title</TableHead>
               <TableHead>Published</TableHead>
               <TableHead>Author</TableHead>
               <TableHead className="w-40 text-right">Actions</TableHead>
@@ -223,9 +223,9 @@ export default function BooksPage() {
               ))}
             {!list.isLoading &&
               rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className="[&_td]:align-top">
                   <TableCell>{row.id}</TableCell>
-                  <TableCell>{row.title}</TableCell>
+                  <TableCell className="max-w-md whitespace-normal break-words">{row.title}</TableCell>
                   <TableCell>{row.publicationDate}</TableCell>
                   <TableCell>{authorLabel(authorById, row.authorId)}</TableCell>
                   <TableCell className="text-right space-x-2">

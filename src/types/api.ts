@@ -50,6 +50,7 @@ export type CourseDto = {
   espb: number;
   professorId: number | null;
   semesters: CourseSemesterDto[];
+  books: BookDto[];
 };
 export type CoursePayload = {
   code: string;

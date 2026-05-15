@@ -240,11 +240,12 @@ export default function CoursesPage() {
             <TableRow>
               <TableHead className="w-16">ID</TableHead>
               <TableHead>Code</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead className="max-w-[14rem]">Description</TableHead>
+              <TableHead className="max-w-[18rem] whitespace-normal">Title</TableHead>
+              <TableHead className="max-w-[14rem] whitespace-normal">Description</TableHead>
               <TableHead className="w-20">ESPB</TableHead>
               <TableHead className="w-24">Professor</TableHead>
               <TableHead>Semesters</TableHead>
+              <TableHead className="max-w-[16rem] whitespace-normal">Books</TableHead>
               <TableHead className="w-40 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -252,18 +253,18 @@ export default function CoursesPage() {
             {list.isLoading &&
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={8}>
+                  <TableCell colSpan={9}>
                     <Skeleton className="h-8 w-full" />
                   </TableCell>
                 </TableRow>
               ))}
             {!list.isLoading &&
               rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className="[&_td]:align-top">
                   <TableCell>{row.id}</TableCell>
                   <TableCell className="font-mono text-sm">{row.code}</TableCell>
-                  <TableCell>{row.title}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-[14rem] truncate text-sm">
+                  <TableCell className="max-w-[18rem] whitespace-normal break-words">{row.title}</TableCell>
+                  <TableCell className="text-muted-foreground max-w-[14rem] whitespace-normal break-words text-sm">
                     {row.description ?? "—"}
                   </TableCell>
                   <TableCell>{row.espb}</TableCell>
@@ -272,6 +273,11 @@ export default function CoursesPage() {
                     {row.semesters.length === 0
                       ? "—"
                       : row.semesters.map((s) => s.semester).join(", ")}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground max-w-[16rem] whitespace-normal break-words text-sm">
+                    {row.books.length === 0
+                      ? "—"
+                      : row.books.map((b) => b.title).join("; ")}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
