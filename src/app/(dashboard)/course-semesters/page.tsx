@@ -73,6 +73,7 @@ export default function CourseSemestersPage() {
   const [deleting, setDeleting] = useState<CourseSemesterDto | null>(null);
 
   const form = useForm<Form>({
+    shouldUseNativeValidation: true,
     resolver: typedZodResolver<Form>(schema),
     defaultValues: { courseId: "", semester: 1 },
   });

@@ -84,6 +84,7 @@ export default function BooksPage() {
   const [deleting, setDeleting] = useState<BookDto | null>(null);
 
   const form = useForm<Form>({
+    shouldUseNativeValidation: true,
     resolver: zodResolver(schema),
     defaultValues: { title: "", publicationDate: "", authorId: "" },
   });

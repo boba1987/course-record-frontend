@@ -94,6 +94,7 @@ export default function CourseBooksPage() {
   const [deleting, setDeleting] = useState<CourseBookDto | null>(null);
 
   const form = useForm<Form>({
+    shouldUseNativeValidation: true,
     resolver: zodResolver(schema),
     defaultValues: { courseId: "", bookId: "" },
   });

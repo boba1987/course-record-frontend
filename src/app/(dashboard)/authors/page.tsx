@@ -70,6 +70,7 @@ export default function AuthorsPage() {
   const [deleting, setDeleting] = useState<AuthorDto | null>(null);
 
   const form = useForm<Form>({
+    shouldUseNativeValidation: true,
     resolver: zodResolver(schema),
     defaultValues: { firstName: "", lastName: "" },
   });

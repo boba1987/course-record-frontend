@@ -78,6 +78,7 @@ export default function ExamsPage() {
   const [deleting, setDeleting] = useState<ExamDto | null>(null);
 
   const form = useForm<Form>({
+    shouldUseNativeValidation: true,
     resolver: typedZodResolver<Form>(schema),
     defaultValues: {
       studentId: "",

@@ -94,6 +94,7 @@ export default function EnrollmentsPage() {
   const [deleting, setDeleting] = useState<EnrollmentDto | null>(null);
 
   const form = useForm<Form>({
+    shouldUseNativeValidation: true,
     resolver: zodResolver(schema),
     defaultValues: { studentId: "", courseId: "" },
   });

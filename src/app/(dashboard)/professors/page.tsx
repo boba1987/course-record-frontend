@@ -71,6 +71,7 @@ export default function ProfessorsPage() {
   const [deleting, setDeleting] = useState<ProfessorDto | null>(null);
 
   const form = useForm<Form>({
+    shouldUseNativeValidation: true,
     resolver: zodResolver(schema),
     defaultValues: { firstName: "", lastName: "" },
   });

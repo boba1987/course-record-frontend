@@ -95,6 +95,7 @@ export default function CoursesPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const form = useForm<Form>({
+    shouldUseNativeValidation: true,
     resolver: typedZodResolver<Form>(schema),
     defaultValues: {
       code: "",
