@@ -10,8 +10,8 @@ import { typedZodResolver } from "@/lib/typed-zod-resolver";
 import {
   courseFormSchema,
   courseFormToPayload,
-  defaultCourseSemesters,
   emptyCourseFormValues,
+  type CourseFormOutput,
   type CourseFormValues,
 } from "@/lib/course-form";
 import {
@@ -301,7 +301,9 @@ export default function CoursesPage() {
           </DialogHeader>
           <form
             className="space-y-4"
-            onSubmit={form.handleSubmit((v) => save.mutate(courseFormToPayload(v)))}
+            onSubmit={form.handleSubmit((v) =>
+              save.mutate(courseFormToPayload(v as CourseFormOutput)),
+            )}
           >
             <div className="space-y-2">
               <Label>Code</Label>
@@ -347,7 +349,7 @@ export default function CoursesPage() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => append({ semester: 1 })}
+                  onClick={() => append({ semester: "" })}
                 >
                   Add semester
                 </Button>
@@ -373,7 +375,6 @@ export default function CoursesPage() {
                       size="sm"
                       className="shrink-0"
                       onClick={() => remove(index)}
-                      disabled={fields.length <= 1}
                     >
                       Remove
                     </Button>

@@ -25,7 +25,8 @@ export const courseFormSchema = z
     path: ["bookIds"],
   });
 
-export type CourseFormValues = z.infer<typeof courseFormSchema>;
+export type CourseFormValues = z.input<typeof courseFormSchema>;
+export type CourseFormOutput = z.output<typeof courseFormSchema>;
 
 export function defaultCourseSemesters(): CourseFormValues["semesters"] {
   return [{ semester: 1 }];
@@ -46,7 +47,7 @@ export function courseFormValuesFromDto(c: CourseDto): CourseFormValues {
   };
 }
 
-export function courseFormToPayload(v: CourseFormValues): CoursePayload {
+export function courseFormToPayload(v: CourseFormOutput): CoursePayload {
   const prof = v.professorId.trim();
   const desc = v.description.trim();
   return {
@@ -64,8 +65,8 @@ export const emptyCourseFormValues: CourseFormValues = {
   code: "",
   title: "",
   description: "",
-  espb: 6,
+  espb: "",
   professorId: "",
-  semesters: defaultCourseSemesters(),
+  semesters: [],
   bookIds: [],
 };

@@ -13,6 +13,7 @@ import {
   courseFormToPayload,
   courseFormValuesFromDto,
   emptyCourseFormValues,
+  type CourseFormOutput,
   type CourseFormValues,
 } from "@/lib/course-form";
 import { apiFetch, buildListQuery } from "@/lib/api";
@@ -224,7 +225,7 @@ export default function CourseDetailPage() {
         noValidate
         className="space-y-6 pb-28"
         onSubmit={form.handleSubmit(
-          (v) => saveCourse.mutate(courseFormToPayload(v)),
+          (v) => saveCourse.mutate(courseFormToPayload(v as CourseFormOutput)),
           () => toast.error("Fix the highlighted errors before saving."),
         )}
       >
