@@ -59,6 +59,7 @@ export type CoursePayload = {
   espb: number;
   professorId: number | null;
   semesters: CourseSemesterPayload[] | null;
+  bookIds: number[] | null;
 };
 
 export type CourseSemesterUpsertPayload = {

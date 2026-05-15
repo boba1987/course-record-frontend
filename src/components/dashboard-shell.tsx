@@ -99,7 +99,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         render={<Link href={item.href} />}
-                        isActive={pathname === item.href}
+                        isActive={
+                          pathname === item.href ||
+                          (item.href === "/courses" && pathname.startsWith("/courses/"))
+                        }
                       >
                         <item.icon />
                         <span>{item.label}</span>

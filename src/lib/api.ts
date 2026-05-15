@@ -36,9 +36,11 @@ export async function apiFetch<T = unknown>(
   }
 
   const res = await fetch(apiUrl(path), { ...rest, headers: h });
-  if (res.status === 401) {
+  // Only session-expired API calls should clear auth and redirect. Login failures are
+  // also 401 but must not reload /login (that looked like a silent failed submit).
+  if (res.status === 401 && !skipAuth) {
     clearAuthToken();
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
       window.location.href = "/login";
     }
   }

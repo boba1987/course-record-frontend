@@ -1,12 +1,19 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useFieldArray, useForm } from "react-hook-form";
 import { typedZodResolver } from "@/lib/typed-zod-resolver";
-import { z } from "zod";
-import { formInt, formPositiveInt } from "@/lib/form-numbers";
+import {
+  courseFormSchema,
+  courseFormToPayload,
+  defaultCourseSemesters,
+  emptyCourseFormValues,
+  type CourseFormValues,
+} from "@/lib/course-form";
 import {
   Table,
   TableBody,
@@ -38,39 +45,19 @@ import {
 import { apiFetch, buildListQuery } from "@/lib/api";
 import { entityById, professorLabel } from "@/lib/entity-labels";
 import { cn } from "@/lib/utils";
-import type { CourseDto, CoursePayload, PagedModel, ProfessorDto } from "@/types/api";
+import type { BookDto, CourseDto, CoursePayload, PagedModel, ProfessorDto } from "@/types/api";
 import { PaginationFooter, usePagedModel, EMPTY_LIST_FILTERS } from "@/components/admin/pagination";
 import { ListFiltersToolbar } from "@/components/admin/list-filters-toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const semesterRowSchema = z.object({
-  semester: formInt(1, 8),
-});
-
-const schema = z
-  .object({
-    code: z.string().min(1),
-    title: z.string().min(1),
-    description: z.string().max(8000),
-    espb: formPositiveInt(1),
-    professorId: z.string(),
-    semesters: z.array(semesterRowSchema),
-  })
-  .refine(
-    (data) => new Set(data.semesters.map((s) => s.semester)).size === data.semesters.length,
-    { message: "Each study-program semester must be unique", path: ["semesters"] },
-  );
-
-type Form = z.infer<typeof schema>;
-
 const API = "/api/courses";
 const PROFESSORS = "/api/professors";
-
-function defaultSemesters(): Form["semesters"] {
-  return [{ semester: 1 }];
-}
+const BOOKS = "/api/books";
+const selectClassName =
+  "border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm";
 
 export default function CoursesPage() {
+  const router = useRouter();
   const [page, setPage] = useState(0);
   const [draftName, setDraftName] = useState("");
   const [appliedName, setAppliedName] = useState("");
@@ -92,19 +79,21 @@ export default function CoursesPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CourseDto | null>(null);
   const [deleting, setDeleting] = useState<CourseDto | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [addBookId, setAddBookId] = useState("");
 
-  const form = useForm<Form>({
+  const allBooks = useQuery({
+    queryKey: [BOOKS, "opts"],
+    queryFn: () =>
+      apiFetch<PagedModel<BookDto>>(
+        `${BOOKS}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+      ),
+    enabled: open,
+  });
+
+  const form = useForm<CourseFormValues>({
     shouldUseNativeValidation: true,
-    resolver: typedZodResolver<Form>(schema),
-    defaultValues: {
-      code: "",
-      title: "",
-      description: "",
-      espb: 6,
-      professorId: "",
-      semesters: defaultSemesters(),
-    },
+    resolver: typedZodResolver<CourseFormValues>(courseFormSchema),
+    defaultValues: emptyCourseFormValues,
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -126,6 +115,7 @@ export default function CoursesPage() {
     onSuccess: async () => {
       toast.success(editing ? "Updated" : "Created");
       setOpen(false);
+      setAddBookId("");
       await qc.invalidateQueries({ queryKey: [API] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -143,51 +133,30 @@ export default function CoursesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function toPayload(v: Form): CoursePayload {
-    const prof = v.professorId.trim();
-    const desc = v.description.trim();
-    return {
-      code: v.code.trim(),
-      title: v.title.trim(),
-      description: desc === "" ? null : desc,
-      espb: v.espb,
-      professorId: prof === "" ? null : Number(prof),
-      semesters: v.semesters.map((s) => ({ semester: s.semester })),
-    };
-  }
-
-  async function openForEdit(row: CourseDto) {
-    setLoadingDetail(true);
-    try {
-      const c = await apiFetch<CourseDto>(`${API}/${row.id}`);
-      setEditing(row);
-      form.reset({
-        code: c.code,
-        title: c.title,
-        description: c.description ?? "",
-        espb: c.espb,
-        professorId: c.professorId != null ? String(c.professorId) : "",
-        semesters:
-          c.semesters.length > 0
-            ? c.semesters.map((s) => ({ semester: s.semester }))
-            : defaultSemesters(),
-      });
-      setOpen(true);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load course");
-    } finally {
-      setLoadingDetail(false);
-    }
-  }
-
   const professorById = useMemo(
     () => entityById(professors.data?.content),
     [professors.data?.content],
+  );
+  const bookById = useMemo(() => entityById(allBooks.data?.content), [allBooks.data?.content]);
+
+  const bookIds = form.watch("bookIds") ?? [];
+  const selectedBookIdSet = useMemo(() => new Set(bookIds), [bookIds]);
+  const availableBooks = useMemo(
+    () => (allBooks.data?.content ?? []).filter((b) => !selectedBookIdSet.has(b.id)),
+    [allBooks.data?.content, selectedBookIdSet],
+  );
+  const selectedBooks = useMemo(
+    () =>
+      bookIds
+        .map((id) => bookById.get(id))
+        .filter((b): b is BookDto => b != null),
+    [bookIds, bookById],
   );
 
   const rows = list.data?.content ?? [];
   const meta = list.data?.page;
   const semErr = form.formState.errors.semesters;
+  const bookIdsErr = form.formState.errors.bookIds;
 
   return (
     <div className="space-y-4">
@@ -196,14 +165,8 @@ export default function CoursesPage() {
         <Button
           onClick={() => {
             setEditing(null);
-            form.reset({
-              code: "",
-              title: "",
-              description: "",
-              espb: 6,
-              professorId: "",
-              semesters: defaultSemesters(),
-            });
+            form.reset(emptyCourseFormValues);
+            setAddBookId("");
             setOpen(true);
           }}
         >
@@ -260,10 +223,25 @@ export default function CoursesPage() {
               ))}
             {!list.isLoading &&
               rows.map((row) => (
-                <TableRow key={row.id} className="[&_td]:align-top">
+                <TableRow
+                  key={row.id}
+                  tabIndex={0}
+                  role="link"
+                  aria-label={`Open course ${row.code} — ${row.title}`}
+                  className="cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none [&_td]:align-top"
+                  onClick={() => router.push(`/courses/${row.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/courses/${row.id}`);
+                    }
+                  }}
+                >
                   <TableCell>{row.id}</TableCell>
                   <TableCell className="font-mono text-sm">{row.code}</TableCell>
-                  <TableCell className="max-w-[18rem] whitespace-normal break-words">{row.title}</TableCell>
+                  <TableCell className="max-w-[18rem] whitespace-normal break-words">
+                    {row.title}
+                  </TableCell>
                   <TableCell className="text-muted-foreground max-w-[14rem] whitespace-normal break-words text-sm">
                     {row.description ?? "—"}
                   </TableCell>
@@ -279,16 +257,27 @@ export default function CoursesPage() {
                       ? "—"
                       : row.books.map((b) => b.title).join("; ")}
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell
+                    className="text-right space-x-2"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={loadingDetail}
-                      onClick={() => openForEdit(row)}
+                      nativeButton={false}
+                      render={<Link href={`/courses/${row.id}`} />}
                     >
-                      Edit
+                      View
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => setDeleting(row)}>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleting(row);
+                      }}
+                    >
                       Delete
                     </Button>
                   </TableCell>
@@ -299,14 +288,20 @@ export default function CoursesPage() {
         {meta && <PaginationFooter page={meta} onPageChange={setPage} />}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setAddBookId("");
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit course" : "New course"}</DialogTitle>
           </DialogHeader>
           <form
             className="space-y-4"
-            onSubmit={form.handleSubmit((v) => save.mutate(toPayload(v)))}
+            onSubmit={form.handleSubmit((v) => save.mutate(courseFormToPayload(v)))}
           >
             <div className="space-y-2">
               <Label>Code</Label>
@@ -386,6 +381,91 @@ export default function CoursesPage() {
                 ))}
               </div>
             </div>
+
+            {!editing && (
+              <div className="space-y-2">
+                <Label>Books</Label>
+                <p className="text-muted-foreground text-xs">
+                  Optional. Saved together with the course.
+                </p>
+                {typeof bookIdsErr?.message === "string" && (
+                  <p className="text-destructive text-sm">{bookIdsErr.message}</p>
+                )}
+                <div className="flex items-end gap-2">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Label htmlFor="new-course-book" className="text-muted-foreground text-xs">
+                      Add book
+                    </Label>
+                    <select
+                      id="new-course-book"
+                      className={selectClassName}
+                      value={addBookId}
+                      onChange={(e) => setAddBookId(e.target.value)}
+                      disabled={save.isPending || availableBooks.length === 0}
+                    >
+                      <option value="">
+                        {availableBooks.length === 0
+                          ? selectedBooks.length === 0
+                            ? "No books available"
+                            : "All books added"
+                          : "Select a book…"}
+                      </option>
+                      {availableBooks.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.id} — {b.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="shrink-0"
+                    disabled={!addBookId || save.isPending}
+                    onClick={() => {
+                      const id = Number(addBookId);
+                      if (!Number.isFinite(id)) return;
+                      form.setValue("bookIds", [...(form.getValues("bookIds") ?? []), id], {
+                        shouldValidate: true,
+                      });
+                      setAddBookId("");
+                    }}
+                  >
+                    Add book
+                  </Button>
+                </div>
+                {selectedBooks.length > 0 && (
+                  <ul className="divide-y rounded-md border text-sm">
+                    {selectedBooks.map((book) => (
+                      <li
+                        key={book.id}
+                        className="flex items-center justify-between gap-2 px-3 py-2"
+                      >
+                        <span className="min-w-0 break-words">
+                          {book.id} — {book.title}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0"
+                          disabled={save.isPending}
+                          onClick={() =>
+                            form.setValue(
+                              "bookIds",
+                              (form.getValues("bookIds") ?? []).filter((id) => id !== book.id),
+                              { shouldValidate: true },
+                            )
+                          }
+                        >
+                          Remove
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             <DialogFooter>
               <Button

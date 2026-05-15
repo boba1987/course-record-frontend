@@ -1,10 +1,15 @@
+import { jwtCookieMaxAgeSec } from "@/lib/jwt";
+
 const COOKIE = "cr_access_token";
-const MAX_AGE_SEC = 60 * 60 * 12; // 12h; align with JWT expiry in backend if needed
+/** Fallback when JWT has no `exp` (backend default is 1h). */
+const FALLBACK_MAX_AGE_SEC = 60 * 60;
 
 export function setAuthToken(token: string) {
   if (typeof document === "undefined") return;
+  const maxAge = jwtCookieMaxAgeSec(token, FALLBACK_MAX_AGE_SEC);
+  if (maxAge <= 0) return;
   const enc = encodeURIComponent(token);
-  document.cookie = `${COOKIE}=${enc}; Path=/; Max-Age=${MAX_AGE_SEC}; SameSite=Lax`;
+  document.cookie = `${COOKIE}=${enc}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
 }
 
 export function clearAuthToken() {
