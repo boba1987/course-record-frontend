@@ -1,6 +1,6 @@
 # Course Record (Karton predmeta) - admin UI
 
-Next.js App Router admin for the `course-record-backend` API: JWT login, paginated lists, and CRUD dialogs for professors, students, courses (with study-program semesters 1–8), course semesters, enrollments, exams, authors, books, and course books.
+Next.js App Router admin for the `course-record-backend` API: JWT login, paginated lists, and CRUD dialogs for professors, students, courses (with per–study-program semester placements 1–8), study programs, course placements, enrollments, exams, authors, books, and course books.
 
 ## Repository layout
 

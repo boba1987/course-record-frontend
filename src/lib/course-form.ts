@@ -2,7 +2,8 @@ import { z } from "zod";
 import { formInt, formPositiveInt } from "@/lib/form-numbers";
 import type { CourseDto, CoursePayload } from "@/types/api";
 
-const semesterRowSchema = z.object({
+const studyProgramRowSchema = z.object({
+  studyProgramId: z.string().min(1, "Select a study program"),
   semester: formInt(1, 8),
 });
 
@@ -13,12 +14,13 @@ export const courseFormSchema = z
     description: z.string().max(8000),
     espb: formPositiveInt(1),
     professorId: z.string(),
-    semesters: z.array(semesterRowSchema),
+    studyPrograms: z.array(studyProgramRowSchema),
     bookIds: z.array(z.number().int().positive()),
   })
   .refine(
-    (data) => new Set(data.semesters.map((s) => s.semester)).size === data.semesters.length,
-    { message: "Each study-program semester must be unique", path: ["semesters"] },
+    (data) =>
+      new Set(data.studyPrograms.map((s) => s.studyProgramId)).size === data.studyPrograms.length,
+    { message: "Each study program can only appear once", path: ["studyPrograms"] },
   )
   .refine((data) => new Set(data.bookIds).size === data.bookIds.length, {
     message: "Each book can only be added once",
@@ -28,8 +30,11 @@ export const courseFormSchema = z
 export type CourseFormValues = z.input<typeof courseFormSchema>;
 export type CourseFormOutput = z.output<typeof courseFormSchema>;
 
-export function defaultCourseSemesters(): CourseFormValues["semesters"] {
-  return [{ semester: 1 }];
+export function formatCourseStudyPrograms(
+  rows: { studyProgramCode: string; semester: number }[] | null | undefined,
+): string {
+  if (!rows || rows.length === 0) return "—";
+  return rows.map((r) => `${r.studyProgramCode}:${r.semester}`).join(", ");
 }
 
 export function courseFormValuesFromDto(c: CourseDto): CourseFormValues {
@@ -39,10 +44,13 @@ export function courseFormValuesFromDto(c: CourseDto): CourseFormValues {
     description: c.description ?? "",
     espb: c.espb,
     professorId: c.professorId != null ? String(c.professorId) : "",
-    semesters:
-      c.semesters.length > 0
-        ? c.semesters.map((s) => ({ semester: s.semester }))
-        : defaultCourseSemesters(),
+    studyPrograms:
+      (c.studyPrograms ?? []).length > 0
+        ? (c.studyPrograms ?? []).map((s) => ({
+            studyProgramId: String(s.studyProgramId),
+            semester: s.semester,
+          }))
+        : [],
     bookIds: (c.books ?? []).map((b) => b.id),
   };
 }
@@ -56,7 +64,10 @@ export function courseFormToPayload(v: CourseFormOutput): CoursePayload {
     description: desc === "" ? null : desc,
     espb: v.espb,
     professorId: prof === "" ? null : Number(prof),
-    semesters: v.semesters.map((s) => ({ semester: s.semester })),
+    studyPrograms: v.studyPrograms.map((s) => ({
+      studyProgramId: Number(s.studyProgramId),
+      semester: s.semester,
+    })),
     bookIds: v.bookIds ?? [],
   };
 }
@@ -67,6 +78,6 @@ export const emptyCourseFormValues: CourseFormValues = {
   description: "",
   espb: "",
   professorId: "",
-  semesters: [],
+  studyPrograms: [],
   bookIds: [],
 };

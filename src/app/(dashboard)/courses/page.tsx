@@ -11,6 +11,7 @@ import {
   courseFormSchema,
   courseFormToPayload,
   emptyCourseFormValues,
+  formatCourseStudyPrograms,
   type CourseFormOutput,
   type CourseFormValues,
 } from "@/lib/course-form";
@@ -42,10 +43,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiFetch, buildListQuery } from "@/lib/api";
+import { apiFetch, buildListQuery, LIST_OPTS_PAGE_SIZE } from "@/lib/api";
 import { entityById, professorLabel } from "@/lib/entity-labels";
 import { cn } from "@/lib/utils";
-import type { BookDto, CourseDto, CoursePayload, PagedModel, ProfessorDto } from "@/types/api";
+import type {
+  BookDto,
+  CourseDto,
+  CoursePayload,
+  PagedModel,
+  ProfessorDto,
+  StudyProgramDto,
+} from "@/types/api";
 import { PaginationFooter, usePagedModel, EMPTY_LIST_FILTERS } from "@/components/admin/pagination";
 import { ListFiltersToolbar } from "@/components/admin/list-filters-toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,6 +61,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const API = "/api/courses";
 const PROFESSORS = "/api/professors";
 const BOOKS = "/api/books";
+const STUDY_PROGRAMS = "/api/study-programs";
 const selectClassName =
   "border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm";
 
@@ -72,7 +81,7 @@ export default function CoursesPage() {
     queryKey: [PROFESSORS, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<ProfessorDto>>(
-        `${PROFESSORS}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${PROFESSORS}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
 
@@ -85,7 +94,16 @@ export default function CoursesPage() {
     queryKey: [BOOKS, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<BookDto>>(
-        `${BOOKS}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${BOOKS}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
+      ),
+    enabled: open,
+  });
+
+  const studyPrograms = useQuery({
+    queryKey: [STUDY_PROGRAMS, "opts"],
+    queryFn: () =>
+      apiFetch<PagedModel<StudyProgramDto>>(
+        `${STUDY_PROGRAMS}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
     enabled: open,
   });
@@ -98,7 +116,7 @@ export default function CoursesPage() {
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "semesters",
+    name: "studyPrograms",
   });
 
   const save = useMutation({
@@ -155,7 +173,7 @@ export default function CoursesPage() {
 
   const rows = list.data?.content ?? [];
   const meta = list.data?.page;
-  const semErr = form.formState.errors.semesters;
+  const studyProgramsErr = form.formState.errors.studyPrograms;
   const bookIdsErr = form.formState.errors.bookIds;
 
   return (
@@ -207,7 +225,7 @@ export default function CoursesPage() {
               <TableHead className="max-w-[14rem] whitespace-normal">Description</TableHead>
               <TableHead className="w-20">ESPB</TableHead>
               <TableHead className="w-24">Professor</TableHead>
-              <TableHead>Semesters</TableHead>
+              <TableHead>Study programs</TableHead>
               <TableHead className="max-w-[16rem] whitespace-normal">Books</TableHead>
               <TableHead className="w-40 text-right">Actions</TableHead>
             </TableRow>
@@ -248,14 +266,12 @@ export default function CoursesPage() {
                   <TableCell>{row.espb}</TableCell>
                   <TableCell>{professorLabel(professorById, row.professorId)}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {row.semesters.length === 0
-                      ? "—"
-                      : row.semesters.map((s) => s.semester).join(", ")}
+                    {formatCourseStudyPrograms(row.studyPrograms)}
                   </TableCell>
                   <TableCell className="text-muted-foreground max-w-[16rem] whitespace-normal break-words text-sm">
-                    {row.books.length === 0
+                    {(row.books ?? []).length === 0
                       ? "—"
-                      : row.books.map((b) => b.title).join("; ")}
+                      : (row.books ?? []).map((b) => b.title).join("; ")}
                   </TableCell>
                   <TableCell
                     className="text-right space-x-2"
@@ -344,29 +360,43 @@ export default function CoursesPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Study-program semesters (1–8)</Label>
+                <Label>Study program placements</Label>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => append({ semester: "" })}
+                  onClick={() => append({ studyProgramId: "", semester: "" })}
                 >
-                  Add semester
+                  Add placement
                 </Button>
               </div>
-              {typeof semErr?.message === "string" && (
-                <p className="text-destructive text-sm">{semErr.message}</p>
+              {typeof studyProgramsErr?.message === "string" && (
+                <p className="text-destructive text-sm">{studyProgramsErr.message}</p>
               )}
               <div className="space-y-2">
                 {fields.map((field, index) => (
                   <div key={field.id} className="flex items-end gap-2">
-                    <div className="flex-1 space-y-1">
-                      <Label className="text-muted-foreground text-xs">Semester {index + 1}</Label>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <Label className="text-muted-foreground text-xs">Study program</Label>
+                      <select
+                        className={selectClassName}
+                        {...form.register(`studyPrograms.${index}.studyProgramId` as const)}
+                      >
+                        <option value="">Select…</option>
+                        {(studyPrograms.data?.content ?? []).map((sp) => (
+                          <option key={sp.id} value={sp.id}>
+                            {sp.code} — {sp.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-24 space-y-1">
+                      <Label className="text-muted-foreground text-xs">Semester</Label>
                       <Input
                         type="number"
                         min={1}
                         max={8}
-                        {...form.register(`semesters.${index}.semester` as const)}
+                        {...form.register(`studyPrograms.${index}.semester` as const)}
                       />
                     </div>
                     <Button

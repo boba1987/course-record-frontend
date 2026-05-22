@@ -16,10 +16,17 @@ import {
   type CourseFormOutput,
   type CourseFormValues,
 } from "@/lib/course-form";
-import { apiFetch, buildListQuery } from "@/lib/api";
+import { apiFetch, buildListQuery, LIST_OPTS_PAGE_SIZE } from "@/lib/api";
 import { authorLabel, entityById, professorLabel } from "@/lib/entity-labels";
 import { cn } from "@/lib/utils";
-import type { AuthorDto, BookDto, CourseDto, PagedModel, ProfessorDto } from "@/types/api";
+import type {
+  AuthorDto,
+  BookDto,
+  CourseDto,
+  PagedModel,
+  ProfessorDto,
+  StudyProgramDto,
+} from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +62,7 @@ const COURSES_API = "/api/courses";
 const PROFESSORS_API = "/api/professors";
 const BOOKS_API = "/api/books";
 const AUTHORS_API = "/api/authors";
+const STUDY_PROGRAMS_API = "/api/study-programs";
 
 const selectClassName =
   "border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm";
@@ -79,7 +87,7 @@ export default function CourseDetailPage() {
     queryKey: [PROFESSORS_API, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<ProfessorDto>>(
-        `${PROFESSORS_API}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${PROFESSORS_API}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
 
@@ -87,7 +95,7 @@ export default function CourseDetailPage() {
     queryKey: [BOOKS_API, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<BookDto>>(
-        `${BOOKS_API}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${BOOKS_API}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
 
@@ -95,7 +103,15 @@ export default function CourseDetailPage() {
     queryKey: [AUTHORS_API, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<AuthorDto>>(
-        `${AUTHORS_API}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${AUTHORS_API}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
+      ),
+  });
+
+  const studyPrograms = useQuery({
+    queryKey: [STUDY_PROGRAMS_API, "opts"],
+    queryFn: () =>
+      apiFetch<PagedModel<StudyProgramDto>>(
+        `${STUDY_PROGRAMS_API}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
 
@@ -109,7 +125,7 @@ export default function CourseDetailPage() {
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "semesters",
+    name: "studyPrograms",
   });
 
   const saveCourse = useMutation({
@@ -160,10 +176,10 @@ export default function CourseDetailPage() {
   );
 
   const { errors } = form.formState;
-  const semestersErrors = errors.semesters;
-  const semestersUniqueMessage = fieldErrorMessage(
-    semestersErrors && !Array.isArray(semestersErrors)
-      ? (semestersErrors as FieldError)
+  const studyProgramsErrors = errors.studyPrograms;
+  const studyProgramsUniqueMessage = fieldErrorMessage(
+    studyProgramsErrors && !Array.isArray(studyProgramsErrors)
+      ? (studyProgramsErrors as FieldError)
       : undefined,
   );
   const bookIdsErr = errors.bookIds;
@@ -331,45 +347,76 @@ export default function CourseDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
               <div>
-                <CardTitle>Study-program semesters</CardTitle>
-                <CardDescription>Semester ordinals 1–8 (must be unique per course).</CardDescription>
+                <CardTitle>Study program placements</CardTitle>
+                <CardDescription>
+                  For each study program, set the curriculum semester (1–8). Each program may appear once.
+                </CardDescription>
               </div>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 disabled={loading}
-                onClick={() => append({ semester: 1 })}
+                onClick={() => append({ studyProgramId: "", semester: "" })}
               >
-                Add semester
+                Add placement
               </Button>
             </CardHeader>
             <CardContent className="space-y-3">
-              {semestersUniqueMessage && (
-                <p className="text-destructive text-sm">{semestersUniqueMessage}</p>
+              {studyProgramsUniqueMessage && (
+                <p className="text-destructive text-sm">{studyProgramsUniqueMessage}</p>
               )}
             {loading ? (
               <Skeleton className="h-20 w-full" />
+            ) : fields.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No study program placements yet.</p>
             ) : (
               <div className="space-y-2">
                 {fields.map((field, index) => {
-                  const rowErr = Array.isArray(semestersErrors)
-                    ? semestersErrors[index]?.semester
+                  const rowErrors = Array.isArray(studyProgramsErrors)
+                    ? studyProgramsErrors[index]
                     : undefined;
-                  const rowMessage = fieldErrorMessage(rowErr);
+                  const programMessage = fieldErrorMessage(
+                    rowErrors && typeof rowErrors === "object" && "studyProgramId" in rowErrors
+                      ? (rowErrors.studyProgramId as FieldError)
+                      : undefined,
+                  );
+                  const semesterMessage = fieldErrorMessage(
+                    rowErrors && typeof rowErrors === "object" && "semester" in rowErrors
+                      ? (rowErrors.semester as FieldError)
+                      : undefined,
+                  );
                   return (
                   <div key={field.id} className="flex items-end gap-2">
                     <div className="min-w-0 flex-1 space-y-1">
-                      <Label className="text-muted-foreground text-xs">Semester {index + 1}</Label>
+                      <Label className="text-muted-foreground text-xs">Study program</Label>
+                      <select
+                        className={selectClassName}
+                        aria-invalid={!!programMessage}
+                        {...form.register(`studyPrograms.${index}.studyProgramId` as const)}
+                      >
+                        <option value="">Select…</option>
+                        {(studyPrograms.data?.content ?? []).map((sp) => (
+                          <option key={sp.id} value={sp.id}>
+                            {sp.code} — {sp.name}
+                          </option>
+                        ))}
+                      </select>
+                      {programMessage && (
+                        <p className="text-destructive text-xs">{programMessage}</p>
+                      )}
+                    </div>
+                    <div className="w-24 space-y-1">
+                      <Label className="text-muted-foreground text-xs">Semester</Label>
                       <Input
                         type="number"
                         min={1}
                         max={8}
-                        aria-invalid={!!rowMessage}
-                        {...form.register(`semesters.${index}.semester` as const)}
+                        aria-invalid={!!semesterMessage}
+                        {...form.register(`studyPrograms.${index}.semester` as const)}
                       />
-                      {rowMessage && (
-                        <p className="text-destructive text-xs">{rowMessage}</p>
+                      {semesterMessage && (
+                        <p className="text-destructive text-xs">{semesterMessage}</p>
                       )}
                     </div>
                     <Button
@@ -378,7 +425,6 @@ export default function CourseDetailPage() {
                       size="sm"
                       className="shrink-0"
                       onClick={() => remove(index)}
-                      disabled={fields.length <= 1}
                     >
                       Remove
                     </Button>
@@ -509,7 +555,7 @@ export default function CourseDetailPage() {
       >
         <div className="mx-auto flex max-w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground hidden text-sm sm:block">
-            Saves course details, professor, semesters, and books.
+            Saves course details, professor, study program placements, and books.
           </p>
           <PendingButton
             type="submit"

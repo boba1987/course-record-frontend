@@ -41,7 +41,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     label: "Courses",
     items: [
       { href: "/courses", label: "Courses", icon: School },
-      { href: "/course-semesters", label: "Course semesters", icon: Layers },
+      { href: "/study-programs", label: "Study programs", icon: GraduationCap },
+      { href: "/course-study-programs", label: "Course placements", icon: Layers },
       { href: "/course-books", label: "Course books", icon: Library },
     ],
   },

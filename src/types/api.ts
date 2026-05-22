@@ -36,12 +36,30 @@ export type StudentPayload = {
   lastName: string;
 };
 
-export type CourseSemesterDto = {
+export type StudyProgramDto = {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+};
+export type StudyProgramPayload = {
+  code: string;
+  name: string;
+  description: string | null;
+};
+
+export type CourseStudyProgramDto = {
   id: number;
   courseId: number;
+  studyProgramId: number;
+  studyProgramCode: string;
+  studyProgramName: string;
   semester: number;
 };
-export type CourseSemesterPayload = { semester: number };
+export type CourseStudyProgramPayload = {
+  studyProgramId: number;
+  semester: number;
+};
 export type CourseDto = {
   id: number;
   code: string;
@@ -49,7 +67,7 @@ export type CourseDto = {
   description: string | null;
   espb: number;
   professorId: number | null;
-  semesters: CourseSemesterDto[];
+  studyPrograms: CourseStudyProgramDto[];
   books: BookDto[];
 };
 export type CoursePayload = {
@@ -58,12 +76,13 @@ export type CoursePayload = {
   description: string | null;
   espb: number;
   professorId: number | null;
-  semesters: CourseSemesterPayload[] | null;
+  studyPrograms: CourseStudyProgramPayload[] | null;
   bookIds: number[] | null;
 };
 
-export type CourseSemesterUpsertPayload = {
+export type CourseStudyProgramUpsertPayload = {
   courseId: number;
+  studyProgramId: number;
   semester: number;
 };
 

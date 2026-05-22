@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiFetch, buildListQuery } from "@/lib/api";
+import { apiFetch, buildListQuery, LIST_OPTS_PAGE_SIZE } from "@/lib/api";
 import { authorLabel, entityById } from "@/lib/entity-labels";
 import type { AuthorDto, BookDto, BookPayload, PagedModel } from "@/types/api";
 import { PaginationFooter, usePagedModel, EMPTY_LIST_FILTERS } from "@/components/admin/pagination";
@@ -76,7 +76,7 @@ export default function BooksPage() {
     queryKey: [AUTHORS, "all-options"],
     queryFn: () =>
       apiFetch<PagedModel<AuthorDto>>(
-        `${AUTHORS}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${AUTHORS}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
   const [open, setOpen] = useState(false);

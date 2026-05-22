@@ -1,6 +1,9 @@
 import { apiUrl } from "@/lib/config";
 import { clearAuthToken, getAuthTokenFromDocument } from "@/lib/auth-cookie";
 
+/** Matches backend `spring.data.web.pageable.max-page-size` for dropdown option lists. */
+export const LIST_OPTS_PAGE_SIZE = 100;
+
 export class ApiError extends Error {
   status: number;
   body?: unknown;
@@ -17,6 +20,19 @@ type FetchOptions = RequestInit & {
   skipAuth?: boolean;
 };
 
+/** True when the JWT still works on a known secured route (avoids logout on 401 from missing/old endpoints). */
+async function isAuthSessionValid(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      apiUrl(`/api/professors${buildListQuery({ page: 0, size: 1 })}`),
+      { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } },
+    );
+    return res.status !== 401;
+  } catch {
+    return true;
+  }
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: FetchOptions = {},
@@ -28,22 +44,15 @@ export async function apiFetch<T = unknown>(
   if (body && !(body instanceof FormData) && !h.has("Content-Type")) {
     h.set("Content-Type", "application/json");
   }
+  let authToken: string | null = null;
   if (!skipAuth) {
-    const token = getAuthTokenFromDocument();
-    if (token) {
-      h.set("Authorization", `Bearer ${token}`);
+    authToken = getAuthTokenFromDocument();
+    if (authToken) {
+      h.set("Authorization", `Bearer ${authToken}`);
     }
   }
 
   const res = await fetch(apiUrl(path), { ...rest, headers: h });
-  // Only session-expired API calls should clear auth and redirect. Login failures are
-  // also 401 but must not reload /login (that looked like a silent failed submit).
-  if (res.status === 401 && !skipAuth) {
-    clearAuthToken();
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-      window.location.href = "/login";
-    }
-  }
   const text = await res.text();
   let json: unknown = undefined;
   if (text) {
@@ -53,11 +62,32 @@ export async function apiFetch<T = unknown>(
       json = text;
     }
   }
+
+  // Only a truly expired/invalid session should clear auth and redirect. Login failures are
+  // also 401 but must not reload /login. Unknown API paths on an old backend also return 401.
+  let sessionStillValid: boolean | null = null;
+  if (res.status === 401 && !skipAuth && authToken) {
+    sessionStillValid = await isAuthSessionValid(authToken);
+    if (!sessionStillValid) {
+      clearAuthToken();
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
+      }
+    }
+  }
+
   if (!res.ok) {
     const msg =
       typeof json === "object" && json !== null && "error" in json
         ? String((json as { error: unknown }).error)
         : res.statusText;
+    if (res.status === 401 && sessionStillValid) {
+      throw new ApiError(
+        "API returned unauthorized for this path. Restart the backend so it exposes the current routes (e.g. /api/study-programs).",
+        res.status,
+        json,
+      );
+    }
     throw new ApiError(msg || "Request failed", res.status, json);
   }
   return json as T;

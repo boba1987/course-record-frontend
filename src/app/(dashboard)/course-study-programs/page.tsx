@@ -35,51 +35,64 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiFetch, buildListQuery } from "@/lib/api";
-import { courseLabel, entityById } from "@/lib/entity-labels";
+import { apiFetch, buildListQuery, LIST_OPTS_PAGE_SIZE } from "@/lib/api";
+import { courseLabel, entityById, studyProgramLabel } from "@/lib/entity-labels";
 import type {
   CourseDto,
-  CourseSemesterDto,
-  CourseSemesterUpsertPayload,
+  CourseStudyProgramDto,
+  CourseStudyProgramUpsertPayload,
   PagedModel,
+  StudyProgramDto,
 } from "@/types/api";
 import { PaginationFooter, usePagedModel } from "@/components/admin/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const schema = z.object({
   courseId: z.string().min(1),
+  studyProgramId: z.string().min(1),
   semester: formInt(1, 8),
 });
 
 type Form = z.infer<typeof schema>;
 
-const API = "/api/course-semesters";
+const API = "/api/course-study-programs";
 const COURSES = "/api/courses";
+const STUDY_PROGRAMS = "/api/study-programs";
 
-export default function CourseSemestersPage() {
+const selectClassName =
+  "border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm";
+
+export default function CourseStudyProgramsPage() {
   const [page, setPage] = useState(0);
   const qc = useQueryClient();
-  const list = usePagedModel<CourseSemesterDto>(API, page, 20);
+  const list = usePagedModel<CourseStudyProgramDto>(API, page, 20);
   const courses = useQuery({
     queryKey: [COURSES, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<CourseDto>>(
-        `${COURSES}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${COURSES}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
+      ),
+  });
+  const studyPrograms = useQuery({
+    queryKey: [STUDY_PROGRAMS, "opts"],
+    queryFn: () =>
+      apiFetch<PagedModel<StudyProgramDto>>(
+        `${STUDY_PROGRAMS}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
 
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<CourseSemesterDto | null>(null);
-  const [deleting, setDeleting] = useState<CourseSemesterDto | null>(null);
+  const [editing, setEditing] = useState<CourseStudyProgramDto | null>(null);
+  const [deleting, setDeleting] = useState<CourseStudyProgramDto | null>(null);
 
   const form = useForm<Form>({
     shouldUseNativeValidation: true,
     resolver: typedZodResolver<Form>(schema),
-    defaultValues: { courseId: "", semester: 1 },
+    defaultValues: { courseId: "", studyProgramId: "", semester: 1 },
   });
 
   const save = useMutation({
-    mutationFn: async (payload: CourseSemesterUpsertPayload) => {
+    mutationFn: async (payload: CourseStudyProgramUpsertPayload) => {
       if (editing) {
         await apiFetch(`${API}/${editing.id}`, {
           method: "PUT",
@@ -93,6 +106,7 @@ export default function CourseSemestersPage() {
       toast.success(editing ? "Updated" : "Created");
       setOpen(false);
       await qc.invalidateQueries({ queryKey: [API] });
+      await qc.invalidateQueries({ queryKey: [COURSES] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -105,11 +119,16 @@ export default function CourseSemestersPage() {
       toast.success("Deleted");
       setDeleting(null);
       await qc.invalidateQueries({ queryKey: [API] });
+      await qc.invalidateQueries({ queryKey: [COURSES] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const courseById = useMemo(() => entityById(courses.data?.content), [courses.data?.content]);
+  const studyProgramById = useMemo(
+    () => entityById(studyPrograms.data?.content),
+    [studyPrograms.data?.content],
+  );
 
   const rows = list.data?.content ?? [];
   const meta = list.data?.page;
@@ -117,15 +136,15 @@ export default function CourseSemestersPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Course semesters</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Course study programs</h1>
         <Button
           onClick={() => {
             setEditing(null);
-            form.reset({ courseId: "", semester: 1 });
+            form.reset({ courseId: "", studyProgramId: "", semester: 1 });
             setOpen(true);
           }}
         >
-          Add course semester
+          Add placement
         </Button>
       </div>
 
@@ -135,6 +154,7 @@ export default function CourseSemestersPage() {
             <TableRow>
               <TableHead className="w-16">ID</TableHead>
               <TableHead>Course</TableHead>
+              <TableHead>Study program</TableHead>
               <TableHead className="w-28">Semester</TableHead>
               <TableHead className="w-40 text-right">Actions</TableHead>
             </TableRow>
@@ -143,7 +163,7 @@ export default function CourseSemestersPage() {
             {list.isLoading &&
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={4}>
+                  <TableCell colSpan={5}>
                     <Skeleton className="h-8 w-full" />
                   </TableCell>
                 </TableRow>
@@ -153,6 +173,9 @@ export default function CourseSemestersPage() {
                 <TableRow key={row.id}>
                   <TableCell>{row.id}</TableCell>
                   <TableCell>{courseLabel(courseById, row.courseId)}</TableCell>
+                  <TableCell>
+                    {row.studyProgramCode} — {row.studyProgramName}
+                  </TableCell>
                   <TableCell>{row.semester}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
@@ -162,6 +185,7 @@ export default function CourseSemestersPage() {
                         setEditing(row);
                         form.reset({
                           courseId: String(row.courseId),
+                          studyProgramId: String(row.studyProgramId),
                           semester: row.semester,
                         });
                         setOpen(true);
@@ -183,27 +207,38 @@ export default function CourseSemestersPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit course semester" : "New course semester"}</DialogTitle>
+            <DialogTitle>
+              {editing ? "Edit course study program" : "New course study program"}
+            </DialogTitle>
           </DialogHeader>
           <form
             className="space-y-4"
             onSubmit={form.handleSubmit((v) =>
               save.mutate({
                 courseId: Number(v.courseId),
+                studyProgramId: Number(v.studyProgramId),
                 semester: v.semester,
               }),
             )}
           >
             <div className="space-y-2">
               <Label>Course</Label>
-              <select
-                className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
-                {...form.register("courseId")}
-              >
+              <select className={selectClassName} {...form.register("courseId")}>
                 <option value="">Select…</option>
                 {(courses.data?.content ?? []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.id} — {c.code} {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Study program</Label>
+              <select className={selectClassName} {...form.register("studyProgramId")}>
+                <option value="">Select…</option>
+                {(studyPrograms.data?.content ?? []).map((sp) => (
+                  <option key={sp.id} value={sp.id}>
+                    {sp.id} — {sp.code} {sp.name}
                   </option>
                 ))}
               </select>
@@ -232,8 +267,11 @@ export default function CourseSemestersPage() {
       <AlertDialog open={!!deleting} onOpenChange={() => setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete course semester?</AlertDialogTitle>
-            <AlertDialogDescription>ID {deleting?.id}</AlertDialogDescription>
+            <AlertDialogTitle>Delete placement?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleting &&
+                `${courseLabel(courseById, deleting.courseId)} / ${studyProgramLabel(studyProgramById, deleting.studyProgramId)} — semester ${deleting.semester}`}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={del.isPending}>Cancel</AlertDialogCancel>

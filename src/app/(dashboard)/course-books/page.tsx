@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiFetch, buildListQuery } from "@/lib/api";
+import { apiFetch, buildListQuery, LIST_OPTS_PAGE_SIZE } from "@/lib/api";
 import { bookTitleLabel, courseLabel, entityById } from "@/lib/entity-labels";
 import type {
   BookDto,
@@ -78,14 +78,14 @@ export default function CourseBooksPage() {
     queryKey: [COURSES, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<CourseDto>>(
-        `${COURSES}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${COURSES}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
   const books = useQuery({
     queryKey: [BOOKS, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<BookDto>>(
-        `${BOOKS}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${BOOKS}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
 

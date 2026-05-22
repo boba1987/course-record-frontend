@@ -1,4 +1,4 @@
-import type { AuthorDto, BookDto, CourseDto, ProfessorDto, StudentDto } from "@/types/api";
+import type { AuthorDto, BookDto, CourseDto, ProfessorDto, StudentDto, StudyProgramDto } from "@/types/api";
 
 export function entityById<T extends { id: number }>(items: readonly T[] | undefined): Map<number, T> {
   const m = new Map<number, T>();
@@ -24,6 +24,11 @@ export function studentLabel(map: Map<number, StudentDto>, id: number): string {
 export function courseLabel(map: Map<number, CourseDto>, id: number): string {
   const c = map.get(id);
   return c ? `${c.code} — ${c.title}` : idFallback(id);
+}
+
+export function studyProgramLabel(map: Map<number, StudyProgramDto>, id: number): string {
+  const sp = map.get(id);
+  return sp ? `${sp.code} — ${sp.name}` : idFallback(id);
 }
 
 export function bookTitleLabel(map: Map<number, BookDto>, id: number): string {

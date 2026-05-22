@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiFetch, buildListQuery } from "@/lib/api";
+import { apiFetch, buildListQuery, LIST_OPTS_PAGE_SIZE } from "@/lib/api";
 import { courseLabel, entityById, studentLabel } from "@/lib/entity-labels";
 import type {
   CourseDto,
@@ -78,14 +78,14 @@ export default function EnrollmentsPage() {
     queryKey: [STUDENTS, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<StudentDto>>(
-        `${STUDENTS}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${STUDENTS}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
   const courses = useQuery({
     queryKey: [COURSES, "opts"],
     queryFn: () =>
       apiFetch<PagedModel<CourseDto>>(
-        `${COURSES}${buildListQuery({ page: 0, size: 500, sort: "id,asc" })}`,
+        `${COURSES}${buildListQuery({ page: 0, size: LIST_OPTS_PAGE_SIZE, sort: "id,asc" })}`,
       ),
   });
 
