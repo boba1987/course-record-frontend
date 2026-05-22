@@ -81,13 +81,6 @@ export async function apiFetch<T = unknown>(
       typeof json === "object" && json !== null && "error" in json
         ? String((json as { error: unknown }).error)
         : res.statusText;
-    if (res.status === 401 && sessionStillValid) {
-      throw new ApiError(
-        "API returned unauthorized for this path. Restart the backend so it exposes the current routes (e.g. /api/study-programs).",
-        res.status,
-        json,
-      );
-    }
     throw new ApiError(msg || "Request failed", res.status, json);
   }
   return json as T;
